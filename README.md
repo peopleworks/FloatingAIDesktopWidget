@@ -107,8 +107,11 @@ Example:
 
 - `Documents/floating-ai-desktop-widget-guide.html` (includes ES/EN switch)
 
+## TODO
+
+- `TODO.md`
+
 ## Notes
 
 - If the target runs as Administrator and the widget does not, Windows may block focus/close (UIPI). Run both at the same privilege level if needed.
 - DevExpress is not required (the widget is pure WinForms).
-
