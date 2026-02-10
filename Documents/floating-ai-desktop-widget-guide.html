@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FloatingAIDesktopWidget - Guía / Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-gradient: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1a1a2e 100%);
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-bg-hover: rgba(255, 255, 255, 0.07);
+      --text-primary: #ffffff;
+      --text-secondary: #a8b2c1;
+      --border-subtle: rgba(255, 255, 255, 0.10);
+      --code-bg: rgba(0, 0, 0, 0.35);
+      --accent-blue: #4facfe;
+      --accent-purple: #9d4edd;
+      --accent-green: #00f5a0;
+      --accent-orange: #ff6b35;
+      --accent-cyan: #00d9ff;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--primary-gradient);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .animated-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .floating-icon {
+      position: absolute;
+      font-size: 2.25rem;
+      opacity: 0.07;
+      animation: floatIcon 22s ease-in-out infinite;
+      user-select: none;
+    }
+
+    .floating-icon:nth-child(1) { left: 7%; top: 18%; animation-delay: 0s; }
+    .floating-icon:nth-child(2) { left: 18%; top: 60%; animation-delay: -5s; }
+    .floating-icon:nth-child(3) { left: 38%; top: 22%; animation-delay: -10s; }
+    .floating-icon:nth-child(4) { left: 58%; top: 68%; animation-delay: -14s; }
+    .floating-icon:nth-child(5) { left: 78%; top: 36%; animation-delay: -8s; }
+    .floating-icon:nth-child(6) { left: 88%; top: 78%; animation-delay: -18s; }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.07; }
+      25% { transform: translateY(-22px) rotate(7deg); opacity: 0.11; }
+      50% { transform: translateY(-12px) rotate(-5deg); opacity: 0.09; }
+      75% { transform: translateY(-28px) rotate(9deg); opacity: 0.12; }
+    }
+
+    .nav-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 15, 26, 0.92);
+      backdrop-filter: blur(18px);
+      z-index: 1000;
+      padding: 0.8rem 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-logo { font-size: 1.6rem; }
+    .nav-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-subtitle { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; }
+
+    .nav-links { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.45rem 0.75rem;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .nav-link:hover {
+      color: var(--accent-blue);
+      background: rgba(79, 172, 254, 0.10);
+      border-color: rgba(79, 172, 254, 0.25);
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      gap: 0.35rem;
+      align-items: center;
+      padding: 0.25rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .lang-btn {
+      appearance: none;
+      border: 1px solid rgba(79, 172, 254, 0.35);
+      background: rgba(79, 172, 254, 0.10);
+      color: rgba(255, 255, 255, 0.92);
+      font-weight: 900;
+      border-radius: 10px;
+      padding: 0.32rem 0.55rem;
+      cursor: pointer;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      transition: all 0.2s ease;
+      min-width: 44px;
+    }
+
+    .lang-btn:hover {
+      background: rgba(79, 172, 254, 0.18);
+      border-color: rgba(79, 172, 254, 0.55);
+      color: #ffffff;
+    }
+
+    .lang-btn.active {
+      background: rgba(0, 245, 160, 0.14);
+      border-color: rgba(0, 245, 160, 0.35);
+      color: var(--accent-green);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 6.5rem 1.5rem 3rem;
+    }
+
+    .hero {
+      margin: 1.25rem 0 2.5rem;
+      padding: 1.75rem 1.75rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.18);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero h1 {
+      font-size: 2.25rem;
+      line-height: 1.15;
+      margin-bottom: 0.65rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 1.02rem;
+      max-width: 75ch;
+    }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    .pill {
+      display: inline-flex;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .pill strong { color: var(--text-primary); font-weight: 700; }
+
+    section { margin: 2.25rem 0; }
+    .section-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+    .section-title span {
+      display: inline-flex;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      align-items: center;
+      justify-content: center;
+      background: rgba(157, 78, 221, 0.18);
+      border: 1px solid rgba(157, 78, 221, 0.30);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1rem;
+    }
+
+    .card {
+      grid-column: span 12;
+      background: var(--card-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 1.1rem 1.15rem;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .card:hover { transform: translateY(-1px); background: var(--card-bg-hover); }
+
+    .card h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.45rem; }
+    .card p, .card li { color: var(--text-secondary); }
+    .card ul { padding-left: 1.15rem; }
+    .card code { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .code-block {
+      margin-top: 0.75rem;
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.20);
+      gap: 0.75rem;
+    }
+    .code-title {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 700;
+    }
+    .copy-btn {
+      appearance: none;
+      border: 1px solid rgba(79, 172, 254, 0.35);
+      background: rgba(79, 172, 254, 0.12);
+      color: var(--accent-blue);
+      font-weight: 800;
+      border-radius: 10px;
+      padding: 0.35rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: rgba(79, 172, 254, 0.18); border-color: rgba(79, 172, 254, 0.55); }
+    pre {
+      padding: 0.85rem 0.95rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.86rem;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .callout {
+      margin-top: 0.9rem;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 245, 160, 0.25);
+      background: rgba(0, 245, 160, 0.08);
+      padding: 0.85rem 1rem;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    .callout strong { color: var(--accent-green); }
+
+    .two-col .card { grid-column: span 12; }
+    @media (min-width: 980px) {
+      .two-col .card { grid-column: span 6; }
+    }
+
+    .footer {
+      margin-top: 3rem;
+      padding: 1.5rem 0 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.10);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--accent-blue); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="animated-bg" aria-hidden="true">
+    <div class="floating-icon">🪟</div>
+    <div class="floating-icon">🧠</div>
+    <div class="floating-icon">⚡</div>
+    <div class="floating-icon">🧩</div>
+    <div class="floating-icon">🖱️</div>
+    <div class="floating-icon">🔧</div>
+  </div>
+
+  <nav class="nav-container">
+    <div class="nav-content">
+      <div class="nav-brand">
+        <div class="nav-logo">🤖</div>
+        <div>
+          <div class="nav-title">FloatingAIDesktopWidget</div>
+          <div class="nav-subtitle" id="nav-subtitle"
+               data-text-es="Guía de uso + estructura (Windows Forms / .NET)"
+               data-text-en="Usage + structure guide (Windows Forms / .NET)">Guía de uso + estructura (Windows Forms / .NET)</div>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a class="nav-link"
+           data-text-es="Inicio rápido" data-text-en="Quick start"
+           data-href-es="#inicio-rapido-es" data-href-en="#quick-start-en"
+           href="#inicio-rapido-es">Inicio rápido</a>
+        <a class="nav-link"
+           data-text-es="Configuración" data-text-en="Configuration"
+           data-href-es="#configuracion-es" data-href-en="#configuration-en"
+           href="#configuracion-es">Configuración</a>
+        <a class="nav-link"
+           data-text-es="Uso" data-text-en="Usage"
+           data-href-es="#uso-es" data-href-en="#usage-en"
+           href="#uso-es">Uso</a>
+        <a class="nav-link"
+           data-text-es="Estructura" data-text-en="Structure"
+           data-href-es="#estructura-es" data-href-en="#structure-en"
+           href="#estructura-es">Estructura</a>
+        <a class="nav-link"
+           data-text-es="Problemas" data-text-en="Troubleshooting"
+           data-href-es="#problemas-es" data-href-en="#troubleshooting-en"
+           href="#problemas-es">Problemas</a>
+      </div>
+      <div class="lang-switch" aria-label="Language">
+        <button class="lang-btn" type="button" data-lang="es" title="Español">ES</button>
+        <button class="lang-btn" type="button" data-lang="en" title="English">EN</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container" id="doc-es" data-lang="es">
+    <header class="hero" id="top-es">
+      <h1>Widget flotante tipo “chat head” para Windows</h1>
+      <p>
+        <strong>FloatingAIDesktopWidget</strong> es un botón flotante (siempre encima) que se puede mover por el escritorio
+        y que, al hacer click, <strong>lanza una aplicación configurable</strong> (ruta + argumentos).
+        Incluye <strong>single instance</strong> del widget, <strong>menú en bandeja</strong>, <strong>hotkey global</strong>,
+        y opción para <strong>enfocar/cerrar</strong> la app objetivo.
+      </p>
+      <div class="pill-row">
+        <div class="pill"><strong>UI</strong> WinForms</div>
+        <div class="pill"><strong>Runtime</strong> .NET 9 (Windows)</div>
+        <div class="pill"><strong>Config</strong> appsettings.json</div>
+        <div class="pill"><strong>Estado</strong> %AppData%</div>
+        <div class="pill"><strong>Hotkey</strong> configurable</div>
+      </div>
+      <div class="callout">
+        <strong>Última actualización:</strong> 10-Feb-2026
+      </div>
+    </header>
+
+    <section id="inicio-rapido-es">
+      <h2 class="section-title"><span>🚀</span>Inicio rápido</h2>
+      <div class="grid two-col">
+        <div class="card">
+          <h3>Compilar</h3>
+          <p>Compila la solución en Release.</p>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-title">PowerShell</div>
+              <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>dotnet build .\FloatingAIDesktopWidget.slnx -c Release</code></pre>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Ejecutar</h3>
+          <p>Ejecuta el widget desde el output.</p>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-title">Ruta</div>
+              <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>FloatingAIDesktopWidget\bin\Release\net9.0-windows\FloatingAIDesktopWidget.exe</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 1rem;">
+        <h3>Dónde lee la configuración</h3>
+        <p>
+          El widget lee <code>appsettings.json</code> desde la <strong>misma carpeta del .exe</strong>.
+          (El archivo se copia al output en build).
+        </p>
+      </div>
+    </section>
+
+    <section id="configuracion-es">
+      <h2 class="section-title"><span>⚙️</span>Configuración (appsettings.json)</h2>
+      <div class="card">
+        <h3>Ejemplo completo</h3>
+        <p>
+          Nota: en JSON, las rutas Windows deben ir con <code>\\</code> (escape) o usando <code>/</code>.
+        </p>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-title">appsettings.json</div>
+            <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+          </div>
+          <pre><code>{
+  "Target": {
+    "FileName": "C:\\\\TEMP\\\\Copilot\\\\PeopleWorksCopilot.exe",
+    "Arguments": "",
+    "WorkingDirectory": "C:\\\\TEMP\\\\Copilot",
+    "RunAsAdministrator": false,
+    "SingleInstance": true,
+    "FocusExistingIfRunning": true,
+    "AllowCloseFromMenu": true
+  },
+  "UI": {
+    "Size": 64,
+    "Margin": 16,
+    "AlwaysOnTop": true,
+    "ShowInTaskbar": false,
+    "SnapToEdge": true,
+    "Opacity": 1.0,
+    "IconPath": "",
+    "Language": "auto"
+  },
+  "Hotkey": {
+    "Enabled": false,
+    "Gesture": "Ctrl+Shift+Space"
+  }
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="grid two-col" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Target</h3>
+          <ul>
+            <li><code>FileName</code>: ejecutable a lanzar.</li>
+            <li><code>Arguments</code>: argumentos opcionales.</li>
+            <li><code>WorkingDirectory</code>: opcional; si vacío, se infiere del ejecutable.</li>
+            <li><code>RunAsAdministrator</code>: pide elevación (UAC) usando <code>runas</code>.</li>
+            <li><code>SingleInstance</code>: si ya hay una instancia, no abre otra (recomendado <code>true</code>).</li>
+            <li><code>FocusExistingIfRunning</code>: si ya está ejecutándose, intenta traerla al frente.</li>
+            <li><code>AllowCloseFromMenu</code>: permite cerrar desde el menú contextual.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>UI + Hotkey</h3>
+          <ul>
+            <li><code>UI.Size</code>: tamaño del botón (px).</li>
+            <li><code>UI.Margin</code>: margen a bordes (px).</li>
+            <li><code>UI.SnapToEdge</code>: “snap” al borde izquierdo/derecho al soltar.</li>
+            <li><code>UI.AlwaysOnTop</code>: siempre encima.</li>
+            <li><code>UI.IconPath</code>: imagen opcional (si vacío, se genera un icono default).</li>
+            <li><code>UI.Language</code>: <code>auto</code> / <code>es</code> / <code>en</code> (por defecto <code>auto</code>).</li>
+            <li><code>Hotkey.Enabled</code>: habilita hotkey global.</li>
+            <li><code>Hotkey.Gesture</code>: ej. <code>Ctrl+Alt+F8</code>, <code>Ctrl+Shift+Space</code>, <code>Win+Shift+S</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="uso-es">
+      <h2 class="section-title"><span>🖱️</span>Uso</h2>
+      <div class="grid two-col">
+        <div class="card">
+          <h3>Interacción con el botón</h3>
+          <ul>
+            <li><strong>Click izquierdo:</strong> lanza el <code>Target</code> (o enfoca si ya está abierto).</li>
+            <li><strong>Arrastrar:</strong> mueve el botón.</li>
+            <li><strong>Soltar:</strong> guarda posición y (opcionalmente) hace snap a borde.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Menú contextual (click derecho o bandeja)</h3>
+          <ul>
+            <li><strong>Abrir asistente</strong>: lanza/enfoca el target.</li>
+            <li><strong>Cerrar asistente</strong>: intenta cerrar la ventana principal del target.</li>
+            <li><strong>Editar appsettings.json</strong>: abre el archivo de configuración.</li>
+            <li><strong>Recargar configuración</strong>: aplica cambios sin reiniciar.</li>
+            <li><strong>Restablecer posición</strong>: vuelve a la esquina inferior derecha.</li>
+            <li><strong>Idioma</strong>: cambia entre ES/EN (y “Desde configuracion”).</li>
+            <li><strong>Salir</strong>: cierra el widget.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 1rem;">
+        <h3>Single instance (widget)</h3>
+        <p>
+          Si ejecutas el widget por segunda vez, no crea otro botón: señaliza a la instancia existente.
+        </p>
+      </div>
+    </section>
+
+    <section id="estructura-es">
+      <h2 class="section-title"><span>🧱</span>Estructura del proyecto</h2>
+      <div class="card">
+        <h3>Arquitectura (alto nivel)</h3>
+        <ul>
+          <li><code>WidgetForm</code>: ventana sin borde y circular; renderiza el botón; drag &amp; snap; menú.</li>
+          <li><code>AppSettingsProvider</code>: lee <code>appsettings.json</code> y lo recarga con <code>FileSystemWatcher</code>.</li>
+          <li><code>TargetLauncher</code>: lanza el target; opcionalmente enfoca/evita instancias; permite cerrar (menú).</li>
+          <li><code>SingleInstanceManager</code>: asegura 1 sola instancia del widget (mutex + named pipe).</li>
+          <li><code>Hotkey</code>: registro global (WM_HOTKEY) con gesto configurable.</li>
+          <li><code>WidgetState</code>: guarda ubicación en <code>%AppData%</code>.</li>
+        </ul>
+      </div>
+
+      <div class="grid two-col" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Archivos clave (código)</h3>
+          <ul>
+            <li><code>FloatingAIDesktopWidget\Program.cs</code>: arranque (single instance) + creación del formulario.</li>
+            <li><code>FloatingAIDesktopWidget\WidgetForm.cs</code>: UI flotante + menú + hotkey.</li>
+            <li><code>FloatingAIDesktopWidget\TargetLauncher.cs</code>: abrir/enfocar/cerrar el target.</li>
+            <li><code>FloatingAIDesktopWidget\AppSettings*.cs</code>: modelos + provider de config.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Archivos y rutas en disco (runtime)</h3>
+          <ul>
+            <li><code>appsettings.json</code>: junto al <code>.exe</code> del widget.</li>
+            <li><code>%AppData%\FloatingAIDesktopWidget\widget.state.json</code>: posición guardada.</li>
+          </ul>
+          <div class="callout" style="margin-top: 0.8rem;">
+            <strong>Tip:</strong> si cambias tamaño (<code>UI.Size</code>), el widget ajusta su región circular y re‑clampa al área de trabajo del monitor.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="problemas-es">
+      <h2 class="section-title"><span>🩺</span>Problemas comunes</h2>
+      <div class="grid two-col">
+        <div class="card">
+          <h3>“Target:FileName está vacío”</h3>
+          <p>
+            Normalmente significa que el JSON no se pudo leer (por ejemplo, rutas con <code>\</code> sin escapar).
+            Usa <code>\\</code> o <code>/</code> y evita terminar strings con <code>\</code>.
+          </p>
+        </div>
+        <div class="card">
+          <h3>No enfoca / no cierra el target</h3>
+          <p>
+            Si el target corre como Administrador y el widget no, Windows puede bloquear foco/cierre (UIPI).
+            Solución: ejecuta ambos con el mismo nivel de privilegios, o activa <code>Target.RunAsAdministrator</code>.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Hotkey no registra</h3>
+          <p>
+            Si otra app usa esa combinación, el widget no la registra y muestra un aviso en la bandeja.
+            Cambia <code>Hotkey.Gesture</code> y recarga configuración.
+          </p>
+        </div>
+        <div class="card">
+          <h3>¿Dónde se guarda la posición?</h3>
+          <p>
+            En <code>%AppData%\FloatingAIDesktopWidget\widget.state.json</code>.
+            Puedes restablecerla desde el menú (“Restablecer posición”).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>
+        <strong>FloatingAIDesktopWidget</strong> · Documento local HTML (abre este archivo en tu navegador).<br />
+        Repositorio: <code>C:\Proyecto\AI\FloatingAIDesktopWidget</code>
+      </div>
+    </footer>
+  </main>
+
+  <main class="container" id="doc-en" data-lang="en" hidden>
+    <header class="hero" id="top-en">
+      <h1>Floating “chat head” widget for Windows</h1>
+      <p>
+        <strong>FloatingAIDesktopWidget</strong> is a floating button (always on top) that you can move around your desktop.
+        When clicked, it <strong>launches a configurable application</strong> (path + arguments).
+        It includes <strong>single instance</strong> for the widget, a <strong>tray menu</strong>, a <strong>global hotkey</strong>,
+        and options to <strong>focus/close</strong> the target app.
+      </p>
+      <div class="pill-row">
+        <div class="pill"><strong>UI</strong> WinForms</div>
+        <div class="pill"><strong>Runtime</strong> .NET 9 (Windows)</div>
+        <div class="pill"><strong>Config</strong> appsettings.json</div>
+        <div class="pill"><strong>State</strong> %AppData%</div>
+        <div class="pill"><strong>Hotkey</strong> configurable</div>
+      </div>
+      <div class="callout">
+        <strong>Last updated:</strong> Feb 10, 2026
+      </div>
+    </header>
+
+    <section id="quick-start-en">
+      <h2 class="section-title"><span>🚀</span>Quick start</h2>
+      <div class="grid two-col">
+        <div class="card">
+          <h3>Build</h3>
+          <p>Build the solution in Release.</p>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-title">PowerShell</div>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code>dotnet build .\FloatingAIDesktopWidget.slnx -c Release</code></pre>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Run</h3>
+          <p>Run the widget from the output folder.</p>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-title">Path</div>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code>FloatingAIDesktopWidget\bin\Release\net9.0-windows\FloatingAIDesktopWidget.exe</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 1rem;">
+        <h3>Where configuration is read</h3>
+        <p>
+          The widget reads <code>appsettings.json</code> from the <strong>same folder as the .exe</strong>.
+          (It’s copied to the output during build).
+        </p>
+      </div>
+    </section>
+
+    <section id="configuration-en">
+      <h2 class="section-title"><span>⚙️</span>Configuration (appsettings.json)</h2>
+      <div class="card">
+        <h3>Full example</h3>
+        <p>
+          Note: in JSON, Windows paths must use <code>\\</code> (escape) or <code>/</code>.
+        </p>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-title">appsettings.json</div>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code>{
+  "Target": {
+    "FileName": "C:\\\\TEMP\\\\Copilot\\\\PeopleWorksCopilot.exe",
+    "Arguments": "",
+    "WorkingDirectory": "C:\\\\TEMP\\\\Copilot",
+    "RunAsAdministrator": false,
+    "SingleInstance": true,
+    "FocusExistingIfRunning": true,
+    "AllowCloseFromMenu": true
+  },
+  "UI": {
+    "Size": 64,
+    "Margin": 16,
+    "AlwaysOnTop": true,
+    "ShowInTaskbar": false,
+    "SnapToEdge": true,
+    "Opacity": 1.0,
+    "IconPath": "",
+    "Language": "auto"
+  },
+  "Hotkey": {
+    "Enabled": false,
+    "Gesture": "Ctrl+Shift+Space"
+  }
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="grid two-col" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Target</h3>
+          <ul>
+            <li><code>FileName</code>: executable to launch.</li>
+            <li><code>Arguments</code>: optional arguments.</li>
+            <li><code>WorkingDirectory</code>: optional; if empty, inferred from the executable.</li>
+            <li><code>RunAsAdministrator</code>: requests elevation (UAC) via <code>runas</code>.</li>
+            <li><code>SingleInstance</code>: if already running, don’t launch another instance (recommended <code>true</code>).</li>
+            <li><code>FocusExistingIfRunning</code>: if already running, try to bring it to the foreground.</li>
+            <li><code>AllowCloseFromMenu</code>: enables “Close assistant” in the context menu.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>UI + Hotkey</h3>
+          <ul>
+            <li><code>UI.Size</code>: button size (px).</li>
+            <li><code>UI.Margin</code>: edge margin (px).</li>
+            <li><code>UI.SnapToEdge</code>: snap to left/right edge on release.</li>
+            <li><code>UI.AlwaysOnTop</code>: always on top.</li>
+            <li><code>UI.IconPath</code>: optional image (if empty, a default icon is generated).</li>
+            <li><code>UI.Language</code>: <code>auto</code> / <code>es</code> / <code>en</code> (default <code>auto</code>).</li>
+            <li><code>Hotkey.Enabled</code>: enable global hotkey.</li>
+            <li><code>Hotkey.Gesture</code>: e.g. <code>Ctrl+Alt+F8</code>, <code>Ctrl+Shift+Space</code>, <code>Win+Shift+S</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="usage-en">
+      <h2 class="section-title"><span>🖱️</span>Usage</h2>
+      <div class="grid two-col">
+        <div class="card">
+          <h3>Button interaction</h3>
+          <ul>
+            <li><strong>Left click:</strong> launches the <code>Target</code> (or focuses it if already running).</li>
+            <li><strong>Drag:</strong> moves the button.</li>
+            <li><strong>Release:</strong> saves position and (optionally) snaps to the nearest edge.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Context menu (right click or tray icon)</h3>
+          <ul>
+            <li><strong>Open assistant</strong>: launch/focus target.</li>
+            <li><strong>Close assistant</strong>: attempts to close the target’s main window.</li>
+            <li><strong>Edit appsettings.json</strong>: opens configuration file.</li>
+            <li><strong>Reload configuration</strong>: applies changes without restart.</li>
+            <li><strong>Reset position</strong>: returns to bottom-right.</li>
+            <li><strong>Language</strong>: switch between ES/EN (and “From settings”).</li>
+            <li><strong>Exit</strong>: closes the widget.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 1rem;">
+        <h3>Single instance (widget)</h3>
+        <p>If you run the widget again, it won’t create another button. It signals the existing instance.</p>
+      </div>
+    </section>
+
+    <section id="structure-en">
+      <h2 class="section-title"><span>🧱</span>Project structure</h2>
+      <div class="card">
+        <h3>Architecture (high level)</h3>
+        <ul>
+          <li><code>WidgetForm</code>: borderless circular window; renders the button; drag &amp; snap; menu.</li>
+          <li><code>AppSettingsProvider</code>: reads <code>appsettings.json</code> and reloads via <code>FileSystemWatcher</code>.</li>
+          <li><code>TargetLauncher</code>: launch/focus/prevent duplicates; close target (menu).</li>
+          <li><code>SingleInstanceManager</code>: ensures 1 widget instance (mutex + named pipe).</li>
+          <li><code>Hotkey</code>: global registration (WM_HOTKEY) with configurable gesture.</li>
+          <li><code>WidgetState</code>: stores location in <code>%AppData%</code>.</li>
+        </ul>
+      </div>
+
+      <div class="grid two-col" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Key files (code)</h3>
+          <ul>
+            <li><code>FloatingAIDesktopWidget\Program.cs</code>: startup (single instance) + form.</li>
+            <li><code>FloatingAIDesktopWidget\WidgetForm.cs</code>: floating UI + menu + hotkey.</li>
+            <li><code>FloatingAIDesktopWidget\TargetLauncher.cs</code>: open/focus/close target.</li>
+            <li><code>FloatingAIDesktopWidget\AppSettings*.cs</code>: models + config provider.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Files on disk (runtime)</h3>
+          <ul>
+            <li><code>appsettings.json</code>: next to the widget <code>.exe</code>.</li>
+            <li><code>%AppData%\FloatingAIDesktopWidget\widget.state.json</code>: saved position.</li>
+          </ul>
+          <div class="callout" style="margin-top: 0.8rem;">
+            <strong>Tip:</strong> if you change <code>UI.Size</code>, the widget updates its circular region and clamps to the monitor working area.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="troubleshooting-en">
+      <h2 class="section-title"><span>🩺</span>Common issues</h2>
+      <div class="grid two-col">
+        <div class="card">
+          <h3>“Target:FileName is empty”</h3>
+          <p>
+            Usually means the JSON couldn’t be parsed (e.g., Windows paths with <code>\</code> not escaped).
+            Use <code>\\</code> or <code>/</code> and avoid ending strings with <code>\</code>.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Can’t focus / can’t close target</h3>
+          <p>
+            If the target runs as Administrator and the widget does not, Windows may block focus/close (UIPI).
+            Solution: run both at the same privilege level, or enable <code>Target.RunAsAdministrator</code>.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Hotkey doesn’t register</h3>
+          <p>
+            If another app already uses that combination, the widget won’t register it and shows a tray warning.
+            Change <code>Hotkey.Gesture</code> and reload configuration.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Where is the position stored?</h3>
+          <p>
+            In <code>%AppData%\FloatingAIDesktopWidget\widget.state.json</code>.
+            You can reset it from the menu (“Reset position”).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>
+        <strong>FloatingAIDesktopWidget</strong> · Local HTML document (open this file in your browser).<br />
+        Repository: <code>C:\Proyecto\AI\FloatingAIDesktopWidget</code>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    let docLang = 'es';
+
+    function safeStorageGet(key) {
+      try { return localStorage.getItem(key); } catch { return null; }
+    }
+
+    function safeStorageSet(key, value) {
+      try { localStorage.setItem(key, value); } catch { /* ignore */ }
+    }
+
+    function detectInitialLang() {
+      const params = new URLSearchParams(window.location.search);
+      const q = (params.get('lang') || '').toLowerCase();
+      if (q === 'en' || q === 'es') return q;
+
+      const stored = (safeStorageGet('docLang') || '').toLowerCase();
+      if (stored === 'en' || stored === 'es') return stored;
+
+      const nav = (navigator.language || 'es').toLowerCase();
+      return nav.startsWith('en') ? 'en' : 'es';
+    }
+
+    function applyNavTranslations(lang) {
+      const subtitle = document.getElementById('nav-subtitle');
+      if (subtitle) {
+        subtitle.textContent = subtitle.getAttribute(lang === 'en' ? 'data-text-en' : 'data-text-es') || subtitle.textContent;
+      }
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+        const text = link.getAttribute(lang === 'en' ? 'data-text-en' : 'data-text-es');
+        const href = link.getAttribute(lang === 'en' ? 'data-href-en' : 'data-href-es');
+        if (text) link.textContent = text;
+        if (href) link.setAttribute('href', href);
+      });
+    }
+
+    function applyCopyButtons(lang) {
+      const label = lang === 'en' ? 'Copy' : 'Copiar';
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.textContent = label;
+      });
+    }
+
+    function setDocLang(lang) {
+      docLang = (lang === 'en') ? 'en' : 'es';
+      safeStorageSet('docLang', docLang);
+
+      document.documentElement.lang = docLang;
+
+      const es = document.getElementById('doc-es');
+      const en = document.getElementById('doc-en');
+      if (es) es.hidden = docLang !== 'es';
+      if (en) en.hidden = docLang !== 'en';
+
+      applyNavTranslations(docLang);
+      applyCopyButtons(docLang);
+
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === docLang);
+      });
+    }
+
+    function copyCode(button) {
+      const codeBlock = button.closest('.code-block');
+      const code = codeBlock.querySelector('code').innerText;
+
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = button.innerText;
+        button.innerText = (docLang === 'en') ? 'Copied' : 'Copiado';
+        button.style.background = 'rgba(0, 245, 160, 0.14)';
+        button.style.borderColor = 'rgba(0, 245, 160, 0.35)';
+        button.style.color = '#00f5a0';
+
+        setTimeout(() => {
+          button.innerText = originalText;
+          button.style.background = '';
+          button.style.borderColor = '';
+          button.style.color = '';
+        }, 1600);
+      });
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => setDocLang(btn.getAttribute('data-lang')));
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    setDocLang(detectInitialLang());
+  </script>
+</body>
+</html>
