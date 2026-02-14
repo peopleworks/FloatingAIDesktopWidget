@@ -131,18 +131,33 @@ internal sealed class SatelliteWidget : Form
             scaledRadius * 2
         );
 
-        // Background circle
+        // Clean, modern look - white/light background with subtle shadow
+        if (_isHovered)
+        {
+            var shadowRect = new RectangleF(
+                rect.X + 2,
+                rect.Y + 2,
+                rect.Width,
+                rect.Height
+            );
+            using var shadowBrush = new SolidBrush(Color.FromArgb(40, 0, 0, 0));
+            g.FillEllipse(shadowBrush, shadowRect);
+        }
+
         var bgColor = _isHovered
-            ? Color.FromArgb(255, 100, 120, 140)
-            : Color.FromArgb(255, 80, 80, 95);
+            ? Color.FromArgb(255, 240, 240, 245)
+            : Color.FromArgb(250, 250, 250, 252);
 
         using (var bgBrush = new SolidBrush(bgColor))
         {
             g.FillEllipse(bgBrush, rect);
         }
 
-        // Border
-        using (var borderPen = new Pen(Color.FromArgb(180, 255, 255, 255), _isHovered ? 2f : 1f))
+        // Border - subtle on normal, accent on hover
+        var borderColor = _isHovered
+            ? Color.FromArgb(200, 100, 150, 255)
+            : Color.FromArgb(180, 200, 200, 210);
+        using (var borderPen = new Pen(borderColor, _isHovered ? 2f : 1f))
         {
             g.DrawEllipse(borderPen, rect);
         }
@@ -177,16 +192,8 @@ internal sealed class SatelliteWidget : Form
 
         var textSize = g.MeasureString(initial, font);
 
-        // Draw shadow
-        using (var shadowBrush = new SolidBrush(Color.FromArgb(150, 0, 0, 0)))
-        {
-            g.DrawString(initial, font, shadowBrush,
-                centerX - textSize.Width / 2 + 1,
-                centerY - textSize.Height / 2 + 1);
-        }
-
-        // Draw text
-        using (var textBrush = new SolidBrush(Color.White))
+        // Draw text with dark color on light background
+        using (var textBrush = new SolidBrush(Color.FromArgb(255, 80, 80, 90)))
         {
             g.DrawString(initial, font, textBrush,
                 centerX - textSize.Width / 2,

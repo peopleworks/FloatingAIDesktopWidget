@@ -2,10 +2,11 @@ namespace FloatingAIDesktopWidget;
 
 internal sealed class SatelliteManager : IDisposable
 {
-    private const int OrbitRadius = 100;
+    private const int ItemSpacing = 12; // Space between items vertically
     private const int AnimationInterval = 16; // ~60 FPS
     private const int EnterDurationMs = 300;
     private const int ExitDurationMs = 200;
+    private const int OffsetFromCenter = 45; // Offset from widget position for floating effect
 
     private readonly List<SatelliteWidget> _satellites = new();
     private readonly List<PointF> _targetPositions = new();
@@ -15,6 +16,7 @@ internal sealed class SatelliteManager : IDisposable
     private bool _isAnimatingIn;
     private bool _isAnimatingOut;
     private bool _isDisposed;
+    private bool _openDownward; // True = open downward, False = open upward
 
     public event EventHandler<TargetSettings>? SatelliteClicked;
     public event EventHandler? Closed;
@@ -31,6 +33,12 @@ internal sealed class SatelliteManager : IDisposable
     public void Show(Point centerPosition, TargetSettings[] targets)
     {
         _centerPosition = centerPosition;
+
+        // Determine if we should open downward or upward
+        var screen = Screen.FromPoint(centerPosition);
+        var workingArea = screen.WorkingArea;
+        int screenMidY = workingArea.Top + workingArea.Height / 2;
+        _openDownward = centerPosition.Y < screenMidY;
 
         // Create satellites
         foreach (var target in targets)
@@ -74,18 +82,31 @@ internal sealed class SatelliteManager : IDisposable
     {
         if (_satellites.Count == 0) return;
 
-        float angleStep = (float)(2 * Math.PI / _satellites.Count);
-        float startAngle = -(float)Math.PI / 2; // Start at top
+        // All items centered horizontally on the cursor
+        float x = _centerPosition.X;
 
+        // Calculate starting Y position based on direction
+        float startY;
+        if (_openDownward)
+        {
+            // Open downward - start below cursor
+            startY = _centerPosition.Y + OffsetFromCenter;
+        }
+        else
+        {
+            // Open upward - start above cursor, accounting for all items
+            int totalHeight = (_satellites.Count * (_satellites[0].Height + ItemSpacing)) - ItemSpacing;
+            startY = _centerPosition.Y - OffsetFromCenter - totalHeight;
+        }
+
+        // Stack items vertically
         for (int i = 0; i < _satellites.Count; i++)
         {
-            float angle = startAngle + (i * angleStep);
-            float x = _centerPosition.X + OrbitRadius * (float)Math.Cos(angle);
-            float y = _centerPosition.Y + OrbitRadius * (float)Math.Sin(angle);
+            float y = startY + (i * (_satellites[i].Height + ItemSpacing));
 
             _targetPositions.Add(new PointF(
                 x - _satellites[i].Width / 2,
-                y - _satellites[i].Height / 2
+                y
             ));
         }
 

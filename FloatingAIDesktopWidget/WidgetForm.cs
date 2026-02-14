@@ -657,6 +657,12 @@ internal sealed class WidgetForm : Form
     {
         try
         {
+            // Calculate center position of the widget for proper alignment
+            var centerPos = new Point(
+                Location.X + Width / 2,
+                Location.Y + Height / 2
+            );
+
             _radialMenuForm?.Dispose();
             _radialMenuForm = new RadialMenuForm(targets);
             _radialMenuForm.ItemSelected += (_, target) =>
@@ -668,7 +674,7 @@ internal sealed class WidgetForm : Form
             {
                 _radialMenuForm = null;
             };
-            _radialMenuForm.ShowAt(Cursor.Position);
+            _radialMenuForm.ShowAt(centerPos);
         }
         catch
         {

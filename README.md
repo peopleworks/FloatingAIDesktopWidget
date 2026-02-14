@@ -2,9 +2,9 @@
 
 <div align="center">
 
-**ES:** Widget flotante inteligente para Windows que permite lanzar múltiples aplicaciones con interfaces visuales espectaculares: menú contextual, menú radial animado o widgets satélite flotantes.
+**ES:** Widget flotante inteligente para Windows que permite lanzar múltiples aplicaciones con interfaces visuales espectaculares: menú contextual, menú vertical flotante tipo Syncfusion o widgets satélite animados.
 
-**EN:** Smart floating widget for Windows that launches multiple applications with stunning visual interfaces: context menu, animated radial menu, or floating satellite widgets.
+**EN:** Smart floating widget for Windows that launches multiple applications with stunning visual interfaces: context menu, Syncfusion-style vertical floating menu, or animated satellite widgets.
 
 ![.NET 9.0](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)
 ![Windows](https://img.shields.io/badge/Windows-10/11-0078D6?logo=windows)
@@ -28,11 +28,28 @@
 
 ---
 
+## 🎯 Escenarios de Uso
+
+### 🔵 Lanzador Simple (1 Target)
+- **Configuración**: 1 solo target en `Targets[]`
+- **Comportamiento**: Click lanza directamente la aplicación
+- **Uso**: Acceso rápido a tu app principal (ChatGPT, Claude, etc.)
+
+### 🟣 Selector Multi-App (2+ Targets)
+- **Configuración**: 2 o más targets configurados
+- **Comportamiento**: Muestra menú de selección elegante
+- **Modos disponibles**:
+  - **RadialCustom** (Recomendado) - Menú vertical flotante tipo Syncfusion ✨
+  - **Satellites** - Menú vertical con animaciones avanzadas 🌟
+  - **ContextMenu** - Menú nativo de Windows (simple)
+
+---
+
 ## ✨ Características
 
 ### Core Features
 - 🎯 **Multi-Target Support** - Lanza múltiples aplicaciones desde un solo widget
-- 🎨 **3 Modos de UI** - Menú contextual, Radial menu, o Satellites flotantes
+- 🎨 **3 Modos de UI** - Menú contextual, Menú vertical flotante, o Satellites animados
 - 🖱️ **Draggable & Resizable** - Posición y tamaño persistente
 - ⌨️ **Global Hotkey** - Acceso rápido desde cualquier lugar
 - 🔄 **Hot Reload** - Cambios en configuración se aplican instantáneamente
@@ -62,8 +79,8 @@ Cuando tienes múltiples aplicaciones configuradas (`Targets[]`), el widget ofre
 | Modo | Descripción | Visual | Mejor Para |
 |------|-------------|--------|------------|
 | **ContextMenu** | Menú nativo de Windows | ![Context](https://img.shields.io/badge/Style-Native-blue) | Simplicidad, familiaridad, muchos items |
-| **RadialCustom** | Menú circular animado estilo DevExpress | ![Radial](https://img.shields.io/badge/Style-Custom-purple) | Impacto visual, 4-8 items |
-| **Satellites** | Widgets flotantes en órbita | ![Satellite](https://img.shields.io/badge/Style-Orbital-orange) | Máximo impacto, 3-6 items |
+| **RadialCustom** | Menú vertical flotante tipo Syncfusion | ![Radial](https://img.shields.io/badge/Style-Vertical-purple) | Diseño limpio moderno, 2-8 items |
+| **Satellites** | Widgets flotantes animados | ![Satellite](https://img.shields.io/badge/Style-Animated-orange) | Máximo impacto visual, 3-6 items |
 
 ### 🔵 Modo 1: Context Menu (Native)
 
@@ -93,27 +110,33 @@ Cuando tienes múltiples aplicaciones configuradas (`Targets[]`), el widget ofre
 }
 ```
 
-### 🟣 Modo 2: Radial Menu (Custom DevExpress-style)
+### 🟣 Modo 2: Vertical Floating Menu (Syncfusion-style)
 
 ```
-        ChatGPT
-           •
-      ╱         ╲
-     •           •
-  Claude    [Widget]    Copilot
-     •           •
-      ╲         ╱
-           •
-      VS Code
+          [Widget]
+             ↓
+          ┌─────┐
+          │  P  │  ← PeopleWorks
+          ├─────┤
+          │  N  │  ← Notepad
+          ├─────┤
+          │  C  │  ← Calculator
+          ├─────┤
+          │  C  │  ← Command Prompt
+          └─────┘
 ```
 
 **Características:**
-- Menú circular con animaciones
-- Fade in/out suave
-- Items distribuidos en círculo (110px radius)
-- Hover effects con bordes luminosos
-- Ideal para 4-8 aplicaciones
-- Máximo impacto visual
+- ✨ Diseño vertical limpio y moderno (tipo Syncfusion)
+- 🎯 Íconos apilados verticalmente con espaciado uniforme
+- 🪟 Fondo completamente transparente - efecto flotante
+- 📍 Perfectamente alineado con el widget base
+- 🔄 Abre hacia **abajo** si estás arriba, hacia **arriba** si estás abajo
+- 🎨 Círculos blancos con bordes sutiles y sombras en hover
+- 💫 Animación fade in/out suave
+- 🔤 Muestra inicial del nombre si no hay ícono configurado
+- 📏 Ideal para 2-8 aplicaciones
+- 🌟 Diseño elegante y profesional
 
 **Configuración:**
 ```json
@@ -124,26 +147,37 @@ Cuando tienes múltiples aplicaciones configuradas (`Targets[]`), el widget ofre
 }
 ```
 
-### 🟠 Modo 3: Satellites (Orbital Widgets)
+**Comportamiento Inteligente:**
+- **Widget en parte superior de pantalla** → Menú se abre hacia **abajo** ⬇️
+- **Widget en parte inferior de pantalla** → Menú se abre hacia **arriba** ⬆️
+- **Separación automática** → 45px de espacio entre widget y menú
+- **Alineación perfecta** → Centrado con el widget base
+
+### 🟠 Modo 3: Satellites (Vertical Animated Widgets)
 
 ```
-    🛰️        🛰️
-      ╲      ╱
-       ╲    ╱
-    🛰️─[🎯]─🛰️
-       ╱    ╲
-      ╱      ╲
-    🛰️        🛰️
+          [Widget]
+             ↓
+          ┌─────┐
+          │  P  │  ← Animación
+          ├─────┤     desde
+          │  N  │     centro
+          ├─────┤     ↑↓
+          │  C  │
+          ├─────┤
+          │  C  │
+          └─────┘
 ```
 
 **Características:**
-- Widgets flotantes individuales (48px cada uno)
-- Animación de expansión desde el centro (300ms, ease-out)
-- Animación de contracción hacia el centro (200ms, ease-in)
-- Tooltips en hover
-- Distribución orbital (100px radius)
-- Ideal para 3-6 aplicaciones
-- **MÁXIMO impacto visual** 🌟
+- 🎯 Widgets flotantes individuales (48px cada uno) apilados verticalmente
+- 💫 Animación de expansión suave desde el centro (300ms, ease-out)
+- ⚡ Animación de contracción hacia el centro (200ms, ease-in)
+- 💬 Tooltips en hover con nombre de aplicación
+- 📍 Apilado vertical inteligente (igual que RadialCustom)
+- 🔄 Abre hacia arriba/abajo según posición en pantalla
+- 🌟 Ideal para 3-6 aplicaciones
+- 🎨 **Máximo impacto visual con animaciones**
 
 **Configuración:**
 ```json
@@ -509,13 +543,15 @@ Si tienes una configuración antigua con `"Target": {...}` (singular), el sistem
 5. **ESC** → Satélites se cierran
 6. **Click en widget con satélites abiertos** → Cierra satélites
 
-### Radial Menu - Interacciones
+### Vertical Menu (RadialCustom) - Interacciones
 
-1. **Click en widget** → Menú radial fade in
-2. **Hover en item** → Item iluminado con borde brillante
-3. **Click en item** → Lanza app, menú fade out
-4. **Click fuera** → Menú se cierra sin lanzar
-5. **ESC** → Menú se cierra
+1. **Click en widget** → Menú vertical aparece con fade in elegante
+2. **Posición automática** → Abre hacia arriba/abajo según ubicación
+3. **Hover en item** → Círculo iluminado con sombra y borde azul brillante
+4. **Click en item** → Lanza aplicación, menú fade out
+5. **Click fuera** → Menú se cierra sin lanzar
+6. **ESC** → Menú se cierra
+7. **Alineación perfecta** → Centrado con el widget base con 45px de separación
 
 ---
 
@@ -608,9 +644,9 @@ FloatingAIDesktopWidget/
 ├── PositionState.cs            # Estado persistente
 ├── Strings.cs                  # Localización ES/EN
 ├── WidgetForm.cs              # Form principal del widget
-├── RadialMenuForm.cs          # Menú radial custom
-├── RadialMenuItem.cs          # Item del menú radial
-├── SatelliteManager.cs        # Gestor de satélites
+├── RadialMenuForm.cs          # Menú vertical flotante (RadialCustom)
+├── RadialMenuItem.cs          # Item del menú vertical
+├── SatelliteManager.cs        # Gestor de satélites (vertical animado)
 ├── SatelliteWidget.cs         # Widget satélite individual
 └── Program.cs                 # Entry point
 
@@ -649,23 +685,35 @@ dotnet build .\FloatingAIDesktopWidget.slnx -c Debug
 // En SatelliteManager.cs:
 - OnAnimationTimer_Tick()     // Ver animaciones frame por frame
 - OnSatelliteClicked()        // Detección de clicks
+- CalculateTargetPositions()  // Posicionamiento vertical
 
-// En RadialMenuForm.cs:
+// En RadialMenuForm.cs (Vertical Menu):
 - OnPaint()                   // Ver rendering
 - OnMouseMove()               // Hover detection
+- ShowAt()                    // Posicionamiento y dirección (arriba/abajo)
+- CalculateItemPositions()    // Stack vertical
 ```
 
 ### Testing Multi-Target
 
 1. **Test con 0 targets:** Debe mostrar error
-2. **Test con 1 target:** Debe lanzar directamente
+2. **Test con 1 target:** Debe lanzar directamente (sin menú)
 3. **Test con 2+ targets:** Debe mostrar menú según `MultiTargetMode`
 4. **Test ContextMenu:** Con 2, 5, 10, 20 targets
-5. **Test RadialCustom:** Con 3-8 targets (óptimo)
-6. **Test Satellites:** Con 3-6 targets (óptimo)
-7. **Test edge cases:** Widget en esquinas, multi-monitor
-8. **Test hot reload:** Cambiar mode, targets, iconos
-9. **Test animations:** Verificar smooth 60 FPS
+5. **Test RadialCustom (Vertical Menu):**
+   - Con 2-8 targets (óptimo)
+   - Widget arriba → menú abre hacia abajo ⬇️
+   - Widget abajo → menú abre hacia arriba ⬆️
+   - Verificar alineación perfecta con widget base
+   - Verificar separación de 45px
+   - Verificar fondo transparente
+6. **Test Satellites (Vertical Animated):**
+   - Con 3-6 targets (óptimo)
+   - Animaciones suaves (300ms entrada, 200ms salida)
+   - Tooltips funcionando
+7. **Test edge cases:** Widget en esquinas, multi-monitor, bordes de pantalla
+8. **Test hot reload:** Cambiar mode, targets, iconos en tiempo real
+9. **Test animations:** Verificar smooth 60 FPS sin stuttering
 
 ---
 
@@ -802,9 +850,10 @@ Ver [TODO.md](TODO.md) para features planeadas.
 
 ## 🙏 Agradecimientos
 
-- DevExpress por la inspiración del Radial Menu
-- La comunidad .NET por las excelentes herramientas
-- Todos los usuarios que reportan issues y sugieren features
+- **Syncfusion** por la inspiración del diseño vertical flotante limpio y moderno
+- **DevExpress** por los conceptos de menús visuales interactivos
+- La comunidad **.NET** por las excelentes herramientas y frameworks
+- Todos los usuarios que reportan issues y sugieren mejoras
 
 ---
 

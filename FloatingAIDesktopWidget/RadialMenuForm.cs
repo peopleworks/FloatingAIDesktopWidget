@@ -4,9 +4,10 @@ namespace FloatingAIDesktopWidget;
 
 internal sealed class RadialMenuForm : Form
 {
-    private const float MenuRadius = 110f;
+    private const float ItemSpacing = 12f; // Space between items
     private const float ItemRadius = 36f;
     private const int IconSize = 24;
+    private const int MenuPadding = 20; // Padding around the menu
 
     private readonly List<RadialMenuItem> _menuItems = new();
     private RadialMenuItem? _hoveredItem;
@@ -14,6 +15,7 @@ internal sealed class RadialMenuForm : Form
     private readonly System.Windows.Forms.Timer _fadeTimer;
     private bool _fadingIn;
     private bool _fadingOut;
+    private bool _openDownward; // True = open downward, False = open upward
 
     public event EventHandler<TargetSettings>? ItemSelected;
 
@@ -29,17 +31,18 @@ internal sealed class RadialMenuForm : Form
         BackColor = Color.Magenta; // Will be transparent
         TransparencyKey = Color.Magenta;
 
-        // Size: enough to contain the menu circle + items
-        int size = (int)((MenuRadius + ItemRadius + 20) * 2);
-        ClientSize = new Size(size, size);
-        _centerPoint = new PointF(size / 2f, size / 2f);
-
-        // Create menu items
+        // Create menu items first
         foreach (var target in targets)
         {
             var icon = TryLoadIcon(target.IconPath);
             _menuItems.Add(new RadialMenuItem(target, icon));
         }
+
+        // Size: width for one item, height for all items stacked vertically
+        int width = (int)((ItemRadius * 2) + MenuPadding * 2);
+        int height = (int)((_menuItems.Count * (ItemRadius * 2 + ItemSpacing)) - ItemSpacing + MenuPadding * 2);
+        ClientSize = new Size(width, Math.Max(height, 100)); // Minimum height of 100
+        _centerPoint = new PointF(width / 2f, height / 2f);
 
         CalculateItemPositions();
 
@@ -74,16 +77,14 @@ internal sealed class RadialMenuForm : Form
     {
         if (_menuItems.Count == 0) return;
 
-        float angleStep = (float)(2 * Math.PI / _menuItems.Count);
-        float startAngle = -(float)Math.PI / 2; // Start at top
+        float x = _centerPoint.X; // All items centered horizontally
+        float startY = MenuPadding + ItemRadius;
 
         for (int i = 0; i < _menuItems.Count; i++)
         {
-            float angle = startAngle + (i * angleStep);
-            float x = _centerPoint.X + MenuRadius * (float)Math.Cos(angle);
-            float y = _centerPoint.Y + MenuRadius * (float)Math.Sin(angle);
+            float y = startY + (i * (ItemRadius * 2 + ItemSpacing));
 
-            _menuItems[i].Angle = angle;
+            _menuItems[i].Angle = 0; // Not used in vertical layout
             _menuItems[i].Position = new PointF(x, y);
             _menuItems[i].Bounds = new RectangleF(
                 x - ItemRadius,
@@ -113,13 +114,30 @@ internal sealed class RadialMenuForm : Form
 
     public void ShowAt(Point screenPosition)
     {
-        // Calculate initial centered position
-        int x = screenPosition.X - ClientSize.Width / 2;
-        int y = screenPosition.Y - ClientSize.Height / 2;
-
         // Get the working area of the screen where the cursor is
         var screen = Screen.FromPoint(screenPosition);
         var workingArea = screen.WorkingArea;
+
+        // Determine if we should open downward or upward
+        int screenMidY = workingArea.Top + workingArea.Height / 2;
+        _openDownward = screenPosition.Y < screenMidY;
+
+        // Calculate position - horizontally centered on cursor
+        int x = screenPosition.X - ClientSize.Width / 2;
+        int y;
+
+        const int OffsetFromWidget = 45; // Space between widget and menu
+
+        if (_openDownward)
+        {
+            // Open downward - menu starts below the widget with spacing
+            y = screenPosition.Y + OffsetFromWidget;
+        }
+        else
+        {
+            // Open upward - menu starts above the widget with spacing
+            y = screenPosition.Y - ClientSize.Height - OffsetFromWidget;
+        }
 
         // Clamp position to keep menu fully visible on screen
         x = Math.Max(workingArea.Left, Math.Min(x, workingArea.Right - ClientSize.Width));
@@ -211,11 +229,8 @@ internal sealed class RadialMenuForm : Form
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
-        // Draw central background circle
-        DrawCentralCircle(g);
-
-        // Draw connecting lines (optional, subtle)
-        DrawConnectingLines(g);
+        // Draw background panel
+        DrawBackgroundPanel(g);
 
         // Draw menu items
         foreach (var item in _menuItems)
@@ -224,83 +239,91 @@ internal sealed class RadialMenuForm : Form
         }
     }
 
-    private void DrawCentralCircle(Graphics g)
+    private void DrawBackgroundPanel(Graphics g)
     {
-        const float centralRadius = 50f;
-
-        var rect = new RectangleF(
-            _centerPoint.X - centralRadius,
-            _centerPoint.Y - centralRadius,
-            centralRadius * 2,
-            centralRadius * 2
-        );
-
-        using var brush = new SolidBrush(Color.FromArgb(200, 60, 60, 75));
-        g.FillEllipse(brush, rect);
-
-        using var pen = new Pen(Color.FromArgb(100, 255, 255, 255), 1f);
-        g.DrawEllipse(pen, rect);
+        // No background panel - completely transparent for floating effect
+        // Items will float independently
     }
 
-    private void DrawConnectingLines(Graphics g)
+    private static GraphicsPath GetRoundedRectPath(RectangleF rect, float radius)
     {
-        using var pen = new Pen(Color.FromArgb(50, 255, 255, 255), 1f);
+        var path = new GraphicsPath();
+        float diameter = radius * 2;
 
-        foreach (var item in _menuItems)
-        {
-            g.DrawLine(pen, _centerPoint, item.Position);
-        }
+        path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
+        path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
+        path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+
+        return path;
     }
 
     private void DrawMenuItem(Graphics g, RadialMenuItem item, bool isHovered)
     {
-        // Background circle
+        // Clean, modern look - white/light background with subtle shadow
         var bgColor = isHovered
-            ? Color.FromArgb(255, 100, 120, 140)
-            : Color.FromArgb(255, 80, 80, 95);
+            ? Color.FromArgb(255, 240, 240, 245)
+            : Color.FromArgb(250, 250, 250, 252);
 
+        // Draw subtle shadow first
+        if (isHovered)
+        {
+            var shadowBounds = new RectangleF(
+                item.Bounds.X + 2,
+                item.Bounds.Y + 2,
+                item.Bounds.Width,
+                item.Bounds.Height
+            );
+            using var shadowBrush = new SolidBrush(Color.FromArgb(40, 0, 0, 0));
+            g.FillEllipse(shadowBrush, shadowBounds);
+        }
+
+        // Background circle
         using var bgBrush = new SolidBrush(bgColor);
         g.FillEllipse(bgBrush, item.Bounds);
 
-        // Border
-        using var borderPen = new Pen(Color.FromArgb(180, 255, 255, 255), isHovered ? 2f : 1f);
+        // Border - subtle on normal, accent on hover
+        var borderColor = isHovered
+            ? Color.FromArgb(200, 100, 150, 255)
+            : Color.FromArgb(180, 200, 200, 210);
+        using var borderPen = new Pen(borderColor, isHovered ? 2f : 1f);
         g.DrawEllipse(borderPen, item.Bounds);
 
-        // Icon
+        // Icon or display initial letter
         if (item.Icon != null)
         {
             var iconRect = new RectangleF(
                 item.Position.X - IconSize / 2f,
-                item.Position.Y - IconSize / 2f - 6, // Offset up for text
+                item.Position.Y - IconSize / 2f,
                 IconSize,
                 IconSize
             );
-
             g.DrawImage(item.Icon, iconRect);
         }
-
-        // Text label
-        DrawItemLabel(g, item);
+        else
+        {
+            // Draw first letter of name if no icon
+            DrawInitial(g, item);
+        }
     }
 
-    private void DrawItemLabel(Graphics g, RadialMenuItem item)
+    private void DrawInitial(Graphics g, RadialMenuItem item)
     {
-        using var font = new Font(FontFamily.GenericSansSerif, 8f, FontStyle.Regular, GraphicsUnit.Point);
-        var textSize = g.MeasureString(item.DisplayName, font);
+        var displayName = string.IsNullOrWhiteSpace(item.DisplayName) ? "?" : item.DisplayName;
+        var initial = displayName[0].ToString().ToUpper();
 
-        var textPos = new PointF(
+        using var font = new Font(FontFamily.GenericSansSerif, 16f, FontStyle.Bold, GraphicsUnit.Point);
+        var textSize = g.MeasureString(initial, font);
+
+        using var textBrush = new SolidBrush(Color.FromArgb(255, 80, 80, 90));
+        g.DrawString(initial, font, textBrush,
             item.Position.X - textSize.Width / 2,
-            item.Position.Y + (item.Icon != null ? 8 : -textSize.Height / 2)
-        );
-
-        // Text shadow for legibility
-        using var shadowBrush = new SolidBrush(Color.FromArgb(180, 0, 0, 0));
-        g.DrawString(item.DisplayName, font, shadowBrush, textPos.X + 1, textPos.Y + 1);
-
-        // Text
-        using var textBrush = new SolidBrush(Color.White);
-        g.DrawString(item.DisplayName, font, textBrush, textPos);
+            item.Position.Y - textSize.Height / 2);
     }
+
+    // Removed DrawItemLabel - in vertical menu style, we only show icons
+    // Tooltip support could be added in the future if needed
 
     private static Image? TryLoadIcon(string? iconPath)
     {
