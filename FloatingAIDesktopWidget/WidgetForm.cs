@@ -37,6 +37,8 @@ internal sealed class WidgetForm : Form
     private Point _windowDownLocation;
 
     private HotkeySettings _hotkeySettings = new();
+    private SatelliteManager? _satelliteManager;
+    private RadialMenuForm? _radialMenuForm;
 
     public WidgetForm(AppSettingsProvider settingsProvider)
     {
@@ -411,6 +413,8 @@ internal sealed class WidgetForm : Form
         {
             _settingsProvider.SettingsChanged -= _settingsChangedHandler;
             GlobalHotkey.Unregister(Handle, HotkeyId);
+            _satelliteManager?.Dispose();
+            _radialMenuForm?.Dispose();
             _trayIcon.Visible = false;
             _trayIcon.Dispose();
             _menu.Dispose();
@@ -562,6 +566,21 @@ internal sealed class WidgetForm : Form
 
     private void LaunchTarget()
     {
+        // If satellites are open, close them instead of opening new ones
+        if (_satelliteManager != null)
+        {
+            _satelliteManager.Hide();
+            return;
+        }
+
+        // If radial menu is open, close it
+        if (_radialMenuForm != null && !_radialMenuForm.IsDisposed)
+        {
+            _radialMenuForm.Close();
+            _radialMenuForm = null;
+            return;
+        }
+
         var targets = _settingsProvider.Current.Targets;
 
         if (targets.Length == 0)
@@ -586,7 +605,11 @@ internal sealed class WidgetForm : Form
         var targets = _settingsProvider.Current.Targets;
         var mode = _settingsProvider.Current.UI.MultiTargetMode ?? "ContextMenu";
 
-        if (mode.Equals("RadialCustom", StringComparison.OrdinalIgnoreCase))
+        if (mode.Equals("Satellites", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowSatellites(targets);
+        }
+        else if (mode.Equals("RadialCustom", StringComparison.OrdinalIgnoreCase))
         {
             ShowRadialMenu(targets);
         }
@@ -596,13 +619,56 @@ internal sealed class WidgetForm : Form
         }
     }
 
+    private void ShowSatellites(TargetSettings[] targets)
+    {
+        try
+        {
+            // Close previous satellites if any
+            _satelliteManager?.Dispose();
+
+            // Calculate center position of the widget
+            var centerPos = new Point(
+                Location.X + Width / 2,
+                Location.Y + Height / 2
+            );
+
+            _satelliteManager = new SatelliteManager();
+            _satelliteManager.SatelliteClicked += (_, target) =>
+            {
+                _satelliteManager.Hide();
+                LaunchSpecificTarget(target);
+            };
+            _satelliteManager.Closed += (_, _) =>
+            {
+                _satelliteManager?.Dispose();
+                _satelliteManager = null;
+            };
+
+            _satelliteManager.Show(centerPos, targets);
+        }
+        catch
+        {
+            // Fallback to context menu if satellites fail
+            ShowContextMenu(targets);
+        }
+    }
+
     private void ShowRadialMenu(TargetSettings[] targets)
     {
         try
         {
-            var radialMenu = new RadialMenuForm(targets);
-            radialMenu.ItemSelected += (_, target) => LaunchSpecificTarget(target);
-            radialMenu.ShowAt(Cursor.Position);
+            _radialMenuForm?.Dispose();
+            _radialMenuForm = new RadialMenuForm(targets);
+            _radialMenuForm.ItemSelected += (_, target) =>
+            {
+                LaunchSpecificTarget(target);
+                _radialMenuForm = null;
+            };
+            _radialMenuForm.FormClosed += (_, _) =>
+            {
+                _radialMenuForm = null;
+            };
+            _radialMenuForm.ShowAt(Cursor.Position);
         }
         catch
         {
@@ -688,7 +754,11 @@ internal sealed class WidgetForm : Form
             return;
         }
 
-        if (mode.Equals("RadialCustom", StringComparison.OrdinalIgnoreCase))
+        if (mode.Equals("Satellites", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowSatellitesClose(closeableTargets);
+        }
+        else if (mode.Equals("RadialCustom", StringComparison.OrdinalIgnoreCase))
         {
             ShowRadialCloseMenu(closeableTargets);
         }
@@ -698,13 +768,56 @@ internal sealed class WidgetForm : Form
         }
     }
 
+    private void ShowSatellitesClose(TargetSettings[] targets)
+    {
+        try
+        {
+            // Close previous satellites if any
+            _satelliteManager?.Dispose();
+
+            // Calculate center position of the widget
+            var centerPos = new Point(
+                Location.X + Width / 2,
+                Location.Y + Height / 2
+            );
+
+            _satelliteManager = new SatelliteManager();
+            _satelliteManager.SatelliteClicked += (_, target) =>
+            {
+                _satelliteManager.Hide();
+                CloseSpecificTarget(target);
+            };
+            _satelliteManager.Closed += (_, _) =>
+            {
+                _satelliteManager?.Dispose();
+                _satelliteManager = null;
+            };
+
+            _satelliteManager.Show(centerPos, targets);
+        }
+        catch
+        {
+            // Fallback to context menu if satellites fail
+            ShowContextCloseMenu(targets);
+        }
+    }
+
     private void ShowRadialCloseMenu(TargetSettings[] targets)
     {
         try
         {
-            var radialMenu = new RadialMenuForm(targets);
-            radialMenu.ItemSelected += (_, target) => CloseSpecificTarget(target);
-            radialMenu.ShowAt(Cursor.Position);
+            _radialMenuForm?.Dispose();
+            _radialMenuForm = new RadialMenuForm(targets);
+            _radialMenuForm.ItemSelected += (_, target) =>
+            {
+                CloseSpecificTarget(target);
+                _radialMenuForm = null;
+            };
+            _radialMenuForm.FormClosed += (_, _) =>
+            {
+                _radialMenuForm = null;
+            };
+            _radialMenuForm.ShowAt(Cursor.Position);
         }
         catch
         {
