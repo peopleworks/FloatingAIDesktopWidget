@@ -1,5 +1,14 @@
 namespace FloatingAIDesktopWidget;
 
+// Intermediate class for deserializing both legacy (Target) and new (Targets[]) formats
+internal sealed class AppSettingsRaw
+{
+    public TargetSettings? Target { get; init; }       // Legacy format (single target)
+    public TargetSettings[]? Targets { get; init; }    // New format (multiple targets)
+    public UiSettings? UI { get; init; }
+    public HotkeySettings? Hotkey { get; init; }
+}
+
 internal sealed class AppSettingsProvider : IDisposable
 {
     private readonly object _gate = new();
@@ -57,15 +66,73 @@ internal sealed class AppSettingsProvider : IDisposable
 
     public void Reload()
     {
-        if (!JsonFile.TryRead<AppSettings>(_settingsPath, out var loaded) || loaded is null)
-        {
-            loaded = new AppSettings();
-        }
+        var loaded = LoadAndMigrate(_settingsPath);
 
         lock (_gate)
         {
             _current = loaded;
         }
+    }
+
+    private static AppSettings LoadAndMigrate(string settingsPath)
+    {
+        // Try to load as raw format (supports both legacy and new)
+        if (!JsonFile.TryRead<AppSettingsRaw>(settingsPath, out var raw) || raw is null)
+        {
+            return new AppSettings();
+        }
+
+        // Determine targets array
+        TargetSettings[] targets;
+
+        if (raw.Targets is not null && raw.Targets.Length > 0)
+        {
+            // New format: use Targets array directly
+            targets = raw.Targets;
+        }
+        else if (raw.Target is not null)
+        {
+            // Legacy format: convert single Target to array
+            targets = [raw.Target];
+        }
+        else
+        {
+            // No targets configured
+            targets = [];
+        }
+
+        // Ensure each target has a Name
+        for (int i = 0; i < targets.Length; i++)
+        {
+            var t = targets[i];
+            if (string.IsNullOrWhiteSpace(t.Name))
+            {
+                // Generate default name based on index
+                var defaultName = Strings.Language == AppLanguage.Es
+                    ? $"Asistente {i + 1}"
+                    : $"Assistant {i + 1}";
+
+                targets[i] = new TargetSettings
+                {
+                    Name = defaultName,
+                    IconPath = t.IconPath,
+                    FileName = t.FileName,
+                    Arguments = t.Arguments,
+                    WorkingDirectory = t.WorkingDirectory,
+                    RunAsAdministrator = t.RunAsAdministrator,
+                    SingleInstance = t.SingleInstance,
+                    FocusExistingIfRunning = t.FocusExistingIfRunning,
+                    AllowCloseFromMenu = t.AllowCloseFromMenu
+                };
+            }
+        }
+
+        return new AppSettings
+        {
+            Targets = targets,
+            UI = raw.UI ?? new UiSettings(),
+            Hotkey = raw.Hotkey ?? new HotkeySettings()
+        };
     }
 
     public void Dispose()

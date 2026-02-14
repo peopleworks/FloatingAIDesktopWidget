@@ -38,6 +38,8 @@ internal static class Strings
 
     public static string MenuOpen => IsEn ? "Open assistant" : "Abrir asistente";
     public static string MenuClose => IsEn ? "Close assistant" : "Cerrar asistente";
+    public static string MenuSelectTarget => IsEn ? "Select application..." : "Seleccionar aplicacion...";
+    public static string MenuCloseAll => IsEn ? "Close all assistants" : "Cerrar todos los asistentes";
     public static string MenuEditSettings => IsEn ? "Edit appsettings.json" : "Editar appsettings.json";
     public static string MenuReload => IsEn ? "Reload configuration" : "Recargar configuracion";
     public static string MenuResetPosition => IsEn ? "Reset position" : "Restablecer posicion";
@@ -53,6 +55,11 @@ internal static class Strings
     public static string BalloonOptionDisabled => IsEn ? "Option disabled in appsettings.json." : "Opcion deshabilitada en appsettings.json.";
 
     public static string HotkeyTitle => IsEn ? "Hotkey" : "Hotkey";
+
+    public static string ErrorNoTargetsConfigured(string settingsPath) =>
+        IsEn
+            ? $"No targets configured in {settingsPath}."
+            : $"No hay targets configurados en {settingsPath}.";
 
     public static string ErrorInvalidConfigEmptyFileName(string settingsPath) =>
         IsEn

@@ -1,4 +1,5 @@
 using System.Drawing.Drawing2D;
+using System.Linq;
 
 namespace FloatingAIDesktopWidget;
 
@@ -254,8 +255,8 @@ internal sealed class WidgetForm : Form
         var rect = ClientRectangle;
         rect.Inflate(-1, -1);
 
-        var top = _pressed ? Color.FromArgb(50, 50, 60) : _hover ? Color.FromArgb(70, 70, 85) : Color.FromArgb(60, 60, 75);
-        var bottom = _pressed ? Color.FromArgb(25, 25, 30) : _hover ? Color.FromArgb(40, 40, 50) : Color.FromArgb(35, 35, 45);
+        // Get background colors based on configuration
+        var (top, bottom) = GetBackgroundColors();
         using var fill = new LinearGradientBrush(rect, top, bottom, LinearGradientMode.Vertical);
         e.Graphics.FillEllipse(fill, rect);
 
@@ -263,6 +264,139 @@ internal sealed class WidgetForm : Form
         e.Graphics.DrawEllipse(border, rect);
 
         DrawIcon(e.Graphics, rect);
+    }
+
+    private (Color top, Color bottom) GetBackgroundColors()
+    {
+        var ui = _settingsProvider.Current.UI;
+        var style = ui.BackgroundStyle?.ToLowerInvariant() ?? "auto";
+
+        // State-based color adjustments (pressed/hover)
+        var stateFactor = _pressed ? 0.7 : _hover ? 1.15 : 1.0;
+
+        switch (style)
+        {
+            case "light":
+                // Light background - good for dark icons with transparency
+                return (
+                    AdjustBrightness(Color.FromArgb(255, 240, 240, 245), stateFactor),
+                    AdjustBrightness(Color.FromArgb(255, 220, 220, 230), stateFactor)
+                );
+
+            case "dark":
+                // Dark background - good for light icons
+                return (
+                    AdjustBrightness(Color.FromArgb(255, 60, 60, 75), stateFactor),
+                    AdjustBrightness(Color.FromArgb(255, 35, 35, 45), stateFactor)
+                );
+
+            case "transparent":
+                // Minimal background - let icon transparency show
+                return (
+                    AdjustBrightness(Color.FromArgb(100, 255, 255, 255), stateFactor),
+                    AdjustBrightness(Color.FromArgb(80, 240, 240, 250), stateFactor)
+                );
+
+            case "custom":
+                // User-defined custom colors
+                var customTop = TryParseHexColor(ui.BackgroundColorTop) ?? Color.FromArgb(255, 0, 102, 204);
+                var customBottom = TryParseHexColor(ui.BackgroundColorBottom) ?? Color.FromArgb(255, 0, 89, 179);
+                return (
+                    AdjustBrightness(customTop, stateFactor),
+                    AdjustBrightness(customBottom, stateFactor)
+                );
+
+            case "auto":
+            default:
+                // Auto mode: detect if using custom icon with transparency
+                if (_iconImage != null && HasTransparency(_iconImage))
+                {
+                    // Icon has transparency - use light background
+                    return (
+                        AdjustBrightness(Color.FromArgb(255, 245, 245, 250), stateFactor),
+                        AdjustBrightness(Color.FromArgb(255, 225, 225, 240), stateFactor)
+                    );
+                }
+                else
+                {
+                    // Default dark background (original behavior)
+                    return (
+                        AdjustBrightness(Color.FromArgb(255, 60, 60, 75), stateFactor),
+                        AdjustBrightness(Color.FromArgb(255, 35, 35, 45), stateFactor)
+                    );
+                }
+        }
+    }
+
+    private static Color AdjustBrightness(Color color, double factor)
+    {
+        if (factor == 1.0) return color;
+
+        var r = Math.Clamp((int)(color.R * factor), 0, 255);
+        var g = Math.Clamp((int)(color.G * factor), 0, 255);
+        var b = Math.Clamp((int)(color.B * factor), 0, 255);
+        return Color.FromArgb(color.A, r, g, b);
+    }
+
+    private static bool HasTransparency(Image image)
+    {
+        if (image is not Bitmap bitmap) return false;
+
+        // Quick check: sample some pixels to detect transparency
+        try
+        {
+            var width = bitmap.Width;
+            var height = bitmap.Height;
+            var samples = Math.Min(100, width * height / 10); // Sample ~10% of pixels, max 100
+
+            for (int i = 0; i < samples; i++)
+            {
+                var x = (i * 7) % width;  // Pseudo-random sampling
+                var y = (i * 11) % height;
+                var pixel = bitmap.GetPixel(x, y);
+
+                if (pixel.A < 255) return true; // Found transparency
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static Color? TryParseHexColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+
+        try
+        {
+            hex = hex.Trim();
+            if (hex.StartsWith("#")) hex = hex[1..];
+
+            if (hex.Length == 6)
+            {
+                var r = Convert.ToByte(hex.Substring(0, 2), 16);
+                var g = Convert.ToByte(hex.Substring(2, 2), 16);
+                var b = Convert.ToByte(hex.Substring(4, 2), 16);
+                return Color.FromArgb(255, r, g, b);
+            }
+            else if (hex.Length == 8)
+            {
+                var a = Convert.ToByte(hex.Substring(0, 2), 16);
+                var r = Convert.ToByte(hex.Substring(2, 2), 16);
+                var g = Convert.ToByte(hex.Substring(4, 2), 16);
+                var b = Convert.ToByte(hex.Substring(6, 2), 16);
+                return Color.FromArgb(a, r, g, b);
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     protected override void OnResize(EventArgs e)
@@ -428,7 +562,87 @@ internal sealed class WidgetForm : Form
 
     private void LaunchTarget()
     {
-        var target = _settingsProvider.Current.Target;
+        var targets = _settingsProvider.Current.Targets;
+
+        if (targets.Length == 0)
+        {
+            _trayIcon.ShowBalloonTip(3000, Strings.UiName, Strings.ErrorNoTargetsConfigured(AppPaths.SettingsPath), ToolTipIcon.Warning);
+            return;
+        }
+
+        if (targets.Length == 1)
+        {
+            // Single target: launch directly
+            LaunchSpecificTarget(targets[0]);
+            return;
+        }
+
+        // Multiple targets: show selection menu
+        ShowTargetSelectionMenu();
+    }
+
+    private void ShowTargetSelectionMenu()
+    {
+        var targets = _settingsProvider.Current.Targets;
+        var mode = _settingsProvider.Current.UI.MultiTargetMode ?? "ContextMenu";
+
+        if (mode.Equals("RadialCustom", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowRadialMenu(targets);
+        }
+        else
+        {
+            ShowContextMenu(targets);
+        }
+    }
+
+    private void ShowRadialMenu(TargetSettings[] targets)
+    {
+        try
+        {
+            var radialMenu = new RadialMenuForm(targets);
+            radialMenu.ItemSelected += (_, target) => LaunchSpecificTarget(target);
+            radialMenu.ShowAt(Cursor.Position);
+        }
+        catch
+        {
+            // Fallback to context menu if radial fails
+            ShowContextMenu(targets);
+        }
+    }
+
+    private void ShowContextMenu(TargetSettings[] targets)
+    {
+        var menu = new ContextMenuStrip();
+
+        foreach (var target in targets)
+        {
+            var name = string.IsNullOrWhiteSpace(target.Name) ? Strings.MenuOpen : target.Name;
+            var menuItem = new ToolStripMenuItem(name, null, (_, _) => LaunchSpecificTarget(target));
+
+            // Try to load target-specific icon
+            var icon = TryLoadIconImage(target.IconPath);
+            if (icon is not null)
+            {
+                try
+                {
+                    menuItem.Image = icon;
+                    menuItem.ImageScaling = ToolStripItemImageScaling.SizeToFit;
+                }
+                catch
+                {
+                    icon.Dispose();
+                }
+            }
+
+            menu.Items.Add(menuItem);
+        }
+
+        menu.Show(Cursor.Position);
+    }
+
+    private void LaunchSpecificTarget(TargetSettings target)
+    {
         if (TargetLauncher.TryLaunch(target, out var error))
         {
             return;
@@ -441,7 +655,104 @@ internal sealed class WidgetForm : Form
 
     private void CloseTarget()
     {
-        var target = _settingsProvider.Current.Target;
+        var targets = _settingsProvider.Current.Targets;
+
+        if (targets.Length == 0)
+        {
+            _trayIcon.ShowBalloonTip(3000, Strings.UiName, Strings.ErrorNoTargetsConfigured(AppPaths.SettingsPath), ToolTipIcon.Warning);
+            return;
+        }
+
+        if (targets.Length == 1)
+        {
+            // Single target: close directly
+            CloseSpecificTarget(targets[0]);
+            return;
+        }
+
+        // Multiple targets: show submenu to select which one to close
+        ShowCloseTargetMenu();
+    }
+
+    private void ShowCloseTargetMenu()
+    {
+        var targets = _settingsProvider.Current.Targets;
+        var mode = _settingsProvider.Current.UI.MultiTargetMode ?? "ContextMenu";
+
+        // Filter to only closeable targets
+        var closeableTargets = targets.Where(t => t.AllowCloseFromMenu).ToArray();
+
+        if (closeableTargets.Length == 0)
+        {
+            _trayIcon.ShowBalloonTip(3000, Strings.UiName, Strings.BalloonOptionDisabled, ToolTipIcon.Info);
+            return;
+        }
+
+        if (mode.Equals("RadialCustom", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowRadialCloseMenu(closeableTargets);
+        }
+        else
+        {
+            ShowContextCloseMenu(closeableTargets);
+        }
+    }
+
+    private void ShowRadialCloseMenu(TargetSettings[] targets)
+    {
+        try
+        {
+            var radialMenu = new RadialMenuForm(targets);
+            radialMenu.ItemSelected += (_, target) => CloseSpecificTarget(target);
+            radialMenu.ShowAt(Cursor.Position);
+        }
+        catch
+        {
+            // Fallback to context menu if radial fails
+            ShowContextCloseMenu(targets);
+        }
+    }
+
+    private void ShowContextCloseMenu(TargetSettings[] targets)
+    {
+        var menu = new ContextMenuStrip();
+
+        // Add option to close each target individually
+        foreach (var target in targets)
+        {
+            var name = string.IsNullOrWhiteSpace(target.Name) ? Strings.MenuClose : target.Name;
+            var menuItem = new ToolStripMenuItem(name, null, (_, _) => CloseSpecificTarget(target));
+
+            // Try to load target-specific icon
+            var icon = TryLoadIconImage(target.IconPath);
+            if (icon is not null)
+            {
+                try
+                {
+                    menuItem.Image = icon;
+                    menuItem.ImageScaling = ToolStripItemImageScaling.SizeToFit;
+                }
+                catch
+                {
+                    icon.Dispose();
+                }
+            }
+
+            menu.Items.Add(menuItem);
+        }
+
+        // Add separator and "Close all" option
+        if (menu.Items.Count > 1)
+        {
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new ToolStripMenuItem(Strings.MenuCloseAll, null, (_, _) => CloseAllTargets()));
+        }
+
+        menu.Show(Cursor.Position);
+    }
+
+    private void CloseSpecificTarget(TargetSettings target)
+    {
         if (!target.AllowCloseFromMenu)
         {
             _trayIcon.ShowBalloonTip(3000, Strings.UiName, Strings.BalloonOptionDisabled, ToolTipIcon.Info);
@@ -455,6 +766,37 @@ internal sealed class WidgetForm : Form
         }
 
         _trayIcon.ShowBalloonTip(5000, Strings.UiName, error, ToolTipIcon.Warning);
+    }
+
+    private void CloseAllTargets()
+    {
+        var targets = _settingsProvider.Current.Targets;
+        var closedCount = 0;
+
+        foreach (var target in targets)
+        {
+            if (!target.AllowCloseFromMenu)
+            {
+                continue;
+            }
+
+            if (TargetLauncher.TryCloseExisting(target, out _))
+            {
+                closedCount++;
+            }
+        }
+
+        if (closedCount > 0)
+        {
+            var message = Strings.Language == AppLanguage.Es
+                ? $"Cerrando {closedCount} asistente(s)..."
+                : $"Closing {closedCount} assistant(s)...";
+            _trayIcon.ShowBalloonTip(2000, Strings.UiName, message, ToolTipIcon.Info);
+        }
+        else
+        {
+            _trayIcon.ShowBalloonTip(3000, Strings.UiName, Strings.ErrorAssistantNotRunning, ToolTipIcon.Warning);
+        }
     }
 
     private void SetLanguageOverride(string? language)
@@ -482,8 +824,20 @@ internal sealed class WidgetForm : Form
     {
         _trayIcon.Text = Strings.UiName;
 
-        _miOpen.Text = Strings.MenuOpen;
-        _miClose.Text = Strings.MenuClose;
+        var targets = _settingsProvider.Current.Targets;
+
+        // Update menu text based on number of targets
+        if (targets.Length > 1)
+        {
+            _miOpen.Text = Strings.MenuSelectTarget;
+            _miClose.Text = Strings.MenuSelectTarget;
+        }
+        else
+        {
+            _miOpen.Text = Strings.MenuOpen;
+            _miClose.Text = Strings.MenuClose;
+        }
+
         _miEditSettings.Text = Strings.MenuEditSettings;
         _miReload.Text = Strings.MenuReload;
         _miResetPos.Text = Strings.MenuResetPosition;
@@ -521,7 +875,20 @@ internal sealed class WidgetForm : Form
         try
         {
             _trayIconImage?.Dispose();
-            _trayIconImage = _iconImage is null ? IconFactory.CreateTrayIcon(32) : IconFactory.CreateIconFromImage(_iconImage, 32);
+
+            // For multi-target: use generic icon or first target's icon
+            var targets = _settingsProvider.Current.Targets;
+            if (targets.Length > 1)
+            {
+                // Multiple targets: use generic icon or widget icon
+                _trayIconImage = _iconImage is null ? IconFactory.CreateTrayIcon(32) : IconFactory.CreateIconFromImage(_iconImage, 32);
+            }
+            else
+            {
+                // Single or no target: use widget icon
+                _trayIconImage = _iconImage is null ? IconFactory.CreateTrayIcon(32) : IconFactory.CreateIconFromImage(_iconImage, 32);
+            }
+
             _trayIcon.Icon = _trayIconImage;
         }
         catch
